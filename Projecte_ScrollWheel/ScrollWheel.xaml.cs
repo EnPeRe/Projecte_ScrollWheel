@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Xamarin.Forms;
+using Xamarin.Forms.Internals;
 using Xamarin.Forms.Xaml;
 
 namespace Projecte_ScrollWheel
@@ -22,6 +23,12 @@ namespace Projecte_ScrollWheel
         public ScrollWheel()
         {
             InitializeComponent();
+
+            // Set PanGestureRecognizer.TouchPoints to control the
+            // number of touch points needed to pan
+            var panGesture = new PanGestureRecognizer();
+            panGesture.PanUpdated += OnPanUpdated;
+            GestureRecognizers.Add(panGesture);
 
             HighlightedItem = 1;
 
@@ -60,47 +67,9 @@ namespace Projecte_ScrollWheel
             {
                 Collection.Children.Add(item);
             }
-
-            //transY = Collection.Children.ElementAt(1).Y;
         }
 
-        private async void SwipeGestureRecognizer_Swiped(object sender, SwipedEventArgs e)
-        {
-            transY = Collection.Children.ElementAt(1).Y;
-
-            //var first = Collection.Children.FirstOrDefault();
-            //Collection.Children.Add(new Label() { Text = ((Label)first).Text });
-
-            Collection.Children.ToList().ForEach(async i =>
-                {
-                    await i.TranslateTo(i.X, -transY, 1000);
-                    //if (ind == 1)
-                    //{
-                    //    var prev = Collection.Children.ElementAt(1);
-                    //    await i.TranslateTo(i.X, I, 1000);
-                    //}
-                });
-
-            await Task.Delay(3000);
-
-            //Collection.Children.Remove(first);
-        }
-
-        private void ScrollView_Scrolled(object sender, ScrolledEventArgs e)
-        {
-            Collection.Children.ToList().ForEach(async i =>
-            {
-                //await i.TranslateTo(i.X, -transY, 1000);
-                var ind = Collection.Children.IndexOf(i);
-                if (ind == 1)
-                {
-                    var prev = Collection.Children.ElementAt(1);
-                    await i.TranslateTo(i.X, i.Y-1, 1);
-                }
-            });
-        }
-
-        private void PanGestureRecognizer_PanUpdated(object sender, PanUpdatedEventArgs e)
+        void OnPanUpdated(object sender, PanUpdatedEventArgs e)
         {
             switch (e.StatusType)
             {
@@ -108,14 +77,16 @@ namespace Projecte_ScrollWheel
                     // Translate and ensure we don't pan beyond the wrapped user interface element bounds.
                     //Content.TranslationX =
                     //  Math.Max(Math.Min(0, x + e.TotalX), -Math.Abs(Content.Width - Application.Current.MainPage.Width));
-                    Content.TranslationY =
-                      Math.Max(Math.Min(0, y + e.TotalY), -Math.Abs(Content.Height - Application.Current.MainPage.Height));
+                    Collection.Children.ForEach(i =>
+                    {
+                        i.TranslationY = y + e.TotalY;
+                    });
                     break;
 
                 case GestureStatus.Completed:
                     // Store the translation applied during the pan
                     x = Content.TranslationX;
-                    y = Content.TranslationY;
+                    y = Collection.Children.FirstOrDefault().TranslationY;
                     break;
             }
         }
